@@ -1,0 +1,18 @@
+# Never game files, emulator binaries or anything an install makes (this repository is the launcher only)
+eboot.bin
+sce_sys/
+sce_module/
+*-app0/
+*.zar
+*.pkg
+*.self
+*.sprx
+*.prx
+kyty_emulator
+kyty_shader_precompile
+_PipelineCache/
+_SaveData/
+_Old/
+logs/
+__pycache__/
+des-launcher.json
