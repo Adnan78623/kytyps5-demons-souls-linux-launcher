@@ -19,7 +19,10 @@ cd "$work"
   -- "$repo/packaging/appimage"
 mv ./*-x86_64 AppDir
 python3 "$repo/packaging/trim_appdir.py" AppDir
+# (Not there yet on a new machine: --no-packaging skips the download.)
+"$work/venv/bin/python-appimage" install appimagetool
 appimagetool="$("$work/venv/bin/python-appimage" which appimagetool)"
+[ -x "$appimagetool" ] || { echo "appimagetool not found" >&2; exit 1; }
 mkdir -p "$out"
 ARCH=x86_64 "$appimagetool" --no-appstream AppDir "$out/DemonsSouls-KytyPS5-Launcher-x86_64.AppImage"
 ls -l "$out/DemonsSouls-KytyPS5-Launcher-x86_64.AppImage"
