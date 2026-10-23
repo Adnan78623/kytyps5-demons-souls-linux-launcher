@@ -1,5 +1,13 @@
 # Demon's Souls launcher for KytyPS5 on Linux (unofficial)
 
+> [!NOTE]
+> **Vibe-coded with Claude.** 🤖⚔️ This launcher was written by Anthropic's Claude (in Claude Code), with a human
+> pointing at things and saying "make it do that". It was played and tested on one Linux PC, which is more testing
+> than most Souls bosses get before shipping.
+>
+> If you die, that's the game. If the launcher dies, that's on us: [open an issue](../../issues).
+> *Try praising the AI.*
+
 A settings window for playing **Demon's Souls (PS5)** on Linux with
 [KytyPS5 by chenxiao07](https://github.com/chenxiao07/KytyPS5), an experimental PS5 emulator made for this game.
 
