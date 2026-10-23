@@ -47,6 +47,15 @@ PRECOMPILE_LOG = KYTY_DIR / "logs" / "last-precompile.log"
 UPDATE_LOG = KYTY_DIR / "logs" / "last-update.log"
 APP_NAME = "Demon's Souls (KytyPS5)"
 
+
+def python_exe():
+    """The Python that runs des-update.py. In the AppImage, sys.executable is the AppImage itself (its Python's wrapper
+    reports the command it was started as), which would start a second launcher: its Python is run by path instead."""
+    appdir = os.environ.get("APPDIR")
+    if appdir and (Path(appdir) / "usr" / "bin" / "python3").exists():
+        return str(Path(appdir) / "usr" / "bin" / "python3")
+    return sys.executable
+
 RESOLUTIONS = ["1280x720", "1600x900", "1920x1080", "2560x1440", "3840x2160"]
 # KYTY_RENDER_HEIGHT (src/loader/demonsSoulsRenderSize.h): the height Demon's Souls renders its 3D at, 16:9; the
 # game's output and HUD stay 4K. Unset = the game's own 2560x1440.
@@ -499,10 +508,10 @@ class Launcher(QWidget):
                                     f"GitHub releases into\n{KYTY_DIR}?\n\nIt is checked against GitHub's checksum "
                                     f"before it is installed.") == QMessageBox.StandardButton.Yes:
                 env, args = self.updater("--yes")
-                self.run_process(sys.executable, args, env, UPDATE_LOG, on_finished=self.installed)
+                self.run_process(python_exe(), args, env, UPDATE_LOG, on_finished=self.installed)
             return
         env, args = self.updater("--check")
-        self.run_process(sys.executable, args, env, UPDATE_LOG, on_finished=self.update_checked)
+        self.run_process(python_exe(), args, env, UPDATE_LOG, on_finished=self.update_checked)
 
     def installed(self, code):
         if code == 0 and self.installed_version():
@@ -517,7 +526,7 @@ class Launcher(QWidget):
                                     "Update now?\n\nThe current version is kept for a rollback "
                                     "(des-update.py --rollback).") == QMessageBox.StandardButton.Yes:
                 env, args = self.updater("--yes")
-                self.run_process(sys.executable, args, env, UPDATE_LOG)
+                self.run_process(python_exe(), args, env, UPDATE_LOG)
             return True
         return False
 
