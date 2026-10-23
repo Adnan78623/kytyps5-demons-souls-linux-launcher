@@ -57,8 +57,8 @@ With Python 3 and PyQt6 installed (`sudo pacman -S python-pyqt6`, `sudo apt inst
 `sudo dnf install python3-pyqt6`):
 
 ```
-git clone https://github.com/Adnan78623/kytyps5-demons-souls-linux
-cd kytyps5-demons-souls-linux
+git clone https://github.com/Adnan78623/kytyps5-demons-souls-linux-launcher
+cd kytyps5-demons-souls-linux-launcher
 ./install.sh
 ```
 
