@@ -1,4 +1,4 @@
-# Demon's Souls launcher for KytyPS5 on Linux (unofficial)
+# KytyPS5 Demon's Souls Linux Launcher (unofficial)
 
 > [!NOTE]
 > **Vibe-coded with Claude.** 🤖⚔️ This launcher was written by Anthropic's Claude (in Claude Code), with a human
@@ -57,8 +57,8 @@ With Python 3 and PyQt6 installed (`sudo pacman -S python-pyqt6`, `sudo apt inst
 `sudo dnf install python3-pyqt6`):
 
 ```
-git clone https://github.com/<you>/des-linux-launcher
-cd des-linux-launcher
+git clone https://github.com/Adnan78623/kytyps5-demons-souls-linux
+cd kytyps5-demons-souls-linux
 ./install.sh
 ```
 
