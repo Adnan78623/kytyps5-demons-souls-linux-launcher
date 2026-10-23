@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>des-launcher</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-only</project_license>
+  <name>Demon's Souls (KytyPS5)</name>
+  <summary>Unofficial Linux launcher for the KytyPS5 emulator</summary>
+  <description>
+    <p>A settings window for playing Demon's Souls (PS5) on Linux with KytyPS5 by chenxiao07. It downloads the
+    official KytyPS5 Linux release, sets render resolution, AMD FSR 3 upscaling and frame generation, precompiles
+    the shaders and keeps the emulator up to date. Not affiliated with Sony, Bluepoint Games, FromSoftware or the
+    KytyPS5 developers; no game files are included.</p>
+  </description>
+  <launchable type="desktop-id">des-launcher.desktop</launchable>
+  <content_rating type="oars-1.1"/>
+</component>

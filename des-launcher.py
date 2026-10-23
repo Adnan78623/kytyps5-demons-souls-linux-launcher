@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Demon's Souls launcher for KytyPS5 on Linux (unofficial): a settings window in front of run_ds.sh.
 
-It lives in the folder of a KytyPS5 Linux release (chenxiao07/KytyPS5), which install.sh downloads and des-update.py
-keeps up to date. Settings are kept in des-launcher.json next to this file.
+KytyPS5 (chenxiao07's official Linux release) lives in its own folder, KYTY_DIR: the launcher's folder when the
+release is there (install.sh), else $DES_HOME, else ~/Games/KytyPS5-DeS (the AppImage, which is read-only). The
+launcher downloads it there when it is missing (des-update.py) and keeps it up to date. Settings, logs, saves and the
+shader cache are in that folder too (des-launcher.json, logs/, _SaveData/, _PipelineCache/).
 """
 import json
 import os
@@ -27,11 +29,23 @@ except ImportError:
         subprocess.run(["kdialog", "--error", message])
     sys.exit(1)
 
-HERE = Path(__file__).resolve().parent
-SETTINGS_FILE = HERE / "des-launcher.json"
-LOG_FILE = HERE / "logs" / "last-run.log"
-PRECOMPILE_LOG = HERE / "logs" / "last-precompile.log"
-UPDATE_LOG = HERE / "logs" / "last-update.log"
+HERE = Path(__file__).resolve().parent  # the launcher's own files (des-update.py, the icon)
+
+
+def kyty_dir():
+    if os.environ.get("DES_HOME"):
+        return Path(os.environ["DES_HOME"]).expanduser().resolve()
+    if (HERE / "run_ds.sh").exists() or (HERE / "kyty_emulator").exists():
+        return HERE
+    return Path.home() / "Games" / "KytyPS5-DeS"
+
+
+KYTY_DIR = kyty_dir()
+SETTINGS_FILE = KYTY_DIR / "des-launcher.json"
+LOG_FILE = KYTY_DIR / "logs" / "last-run.log"
+PRECOMPILE_LOG = KYTY_DIR / "logs" / "last-precompile.log"
+UPDATE_LOG = KYTY_DIR / "logs" / "last-update.log"
+APP_NAME = "Demon's Souls (KytyPS5)"
 
 RESOLUTIONS = ["1280x720", "1600x900", "1920x1080", "2560x1440", "3840x2160"]
 # KYTY_RENDER_HEIGHT (src/loader/demonsSoulsRenderSize.h): the height Demon's Souls renders its 3D at, 16:9; the
@@ -54,7 +68,7 @@ DEFAULTS = {
     "present_mode": "Mailbox", "fps": 60, "gpu": "auto", "language": 1, "mangohud": True,
     "upscaler": "Off", "output_resolution": "2560x1440", "sharpness": 2,
     "fsr_upscaler": False, "fsr_sharpness": 0.6, "frame_gen": False, "low_latency": False,
-    "convars": "doIndexBufferCulling=false", "extra_args": "", "skip_intro": False,
+    "convars": "doIndexBufferCulling=false", "extra_args": "", "skip_intro": False, "menu_asked": False,
 }
 
 
@@ -121,6 +135,9 @@ class Launcher(QWidget):
         g.addWidget(pick_zar)
         self.game_status = QLabel()
         gv.addWidget(self.game_status)
+        self.kyty_status = QLabel()
+        self.kyty_status.setWordWrap(True)
+        gv.addWidget(self.kyty_status)
         root.addWidget(game_box)
 
         # Display
@@ -275,6 +292,37 @@ class Launcher(QWidget):
 
         self.update_enabled()
         self.check_game()
+        self.refresh_install()
+
+    def installed_version(self):
+        """KytyPS5's version in KYTY_DIR ('v20261023'), '' when it is not installed."""
+        exe = KYTY_DIR / "kyty_emulator"
+        if not exe.is_file():
+            return ""
+        try:
+            first = subprocess.run([str(exe), "--help"], capture_output=True, text=True, timeout=30).stdout
+        except (OSError, subprocess.SubprocessError):
+            return "?"
+        parts = [p.split("=", 1)[1].strip() for p in first.splitlines()[0].split(",") if "git =" in p] if first else []
+        return parts[0] if parts else "?"
+
+    def refresh_install(self):
+        """Launch and precompile need KytyPS5; without it the update button installs it."""
+        version = self.installed_version()
+        busy = self.proc is not None and self.proc.state() != QProcess.ProcessState.NotRunning
+        self.launch_btn.setEnabled(bool(version) and not busy)
+        self.precompile_btn.setEnabled(bool(version) and not busy)
+        self.update_btn.setEnabled(not busy)
+        if version:
+            self.kyty_status.setText(f"KytyPS5 {version} (chenxiao07) in {KYTY_DIR}")
+            self.kyty_status.setStyleSheet("color: gray;")
+            self.update_btn.setText("⟳  Check for updates")
+        else:
+            self.kyty_status.setText(f"KytyPS5 is not installed yet: press ⬇ Install KytyPS5 (about 100 MB, from "
+                                     f"chenxiao07's GitHub, into {KYTY_DIR}).")
+            self.kyty_status.setStyleSheet("color: orange;")
+            self.update_btn.setText("⬇  Install KytyPS5")
+        return version
 
     def check_game(self):
         path = self.game.text().strip()
@@ -345,6 +393,11 @@ class Launcher(QWidget):
             "extra_args": self.extra.text().strip(),
         }
 
+    def save_settings(self, cfg=None):
+        KYTY_DIR.mkdir(parents=True, exist_ok=True)
+        SETTINGS_FILE.write_text(json.dumps({**(cfg or self.collect()),
+                                             "menu_asked": self.settings.get("menu_asked", False)}, indent=2))
+
     @staticmethod
     def parse_res(text):
         w, h = text.lower().replace(" ", "").split("x")
@@ -366,7 +419,7 @@ class Launcher(QWidget):
         except ValueError as e:
             QMessageBox.warning(self, "Demon's Souls launcher", f"Extra arguments: {e}")
             return
-        SETTINGS_FILE.write_text(json.dumps(cfg, indent=2))
+        self.save_settings(cfg)
 
         env = QProcessEnvironment.systemEnvironment()
         env.insert("KYTY_GAME", cfg["game"])
@@ -400,7 +453,7 @@ class Launcher(QWidget):
             emu_args.append("--hdr")
 
         filt = UPSCALERS.get(cfg["upscaler"])
-        script = str(HERE / "run_ds.sh")
+        script = str(KYTY_DIR / "run_ds.sh")
         if filt:
             # gamescope owns the output (fullscreen, HDR, overlay); the emulator draws a plain window.
             env.insert("MANGO", "0")
@@ -427,35 +480,50 @@ class Launcher(QWidget):
         if not game or not Path(game).exists():
             QMessageBox.warning(self, "Demon's Souls launcher", "Choose the game folder or .zar archive first.")
             return
-        SETTINGS_FILE.write_text(json.dumps(self.collect(), indent=2))
+        self.save_settings()
         env = QProcessEnvironment.systemEnvironment()
         gpu = self.gpu.currentData()
         if gpu != "auto":
             # (The pipelines are compiled for one graphics card: the one the game runs on.)
             env.insert("KYTY_GPU", gpu)
-        self.run_process(str(HERE / "precompile-linux.sh"), ["--game", game], env, PRECOMPILE_LOG)
+        self.run_process(str(KYTY_DIR / "precompile-linux.sh"), ["--game", game], env, PRECOMPILE_LOG)
 
-    def check_updates(self):
+    def updater(self, mode):
         env = QProcessEnvironment.systemEnvironment()
         env.insert("PYTHONUNBUFFERED", "1")
-        self.run_process(sys.executable, [str(HERE / "des-update.py"), "--check"], env, UPDATE_LOG,
-                         on_finished=self.update_checked)
+        return env, [str(HERE / "des-update.py"), mode, "--dir", str(KYTY_DIR)]
+
+    def check_updates(self):
+        if not self.installed_version():
+            if QMessageBox.question(self, APP_NAME, f"Download KytyPS5, the emulator (about 100 MB), from chenxiao07's "
+                                    f"GitHub releases into\n{KYTY_DIR}?\n\nIt is checked against GitHub's checksum "
+                                    f"before it is installed.") == QMessageBox.StandardButton.Yes:
+                env, args = self.updater("--yes")
+                self.run_process(sys.executable, args, env, UPDATE_LOG, on_finished=self.installed)
+            return
+        env, args = self.updater("--check")
+        self.run_process(sys.executable, args, env, UPDATE_LOG, on_finished=self.update_checked)
+
+    def installed(self, code):
+        if code == 0 and self.installed_version():
+            self.status.setText("KytyPS5 is installed. Choose the game, then press ⚙ Precompile shaders once.")
+            return True
+        return False
 
     def update_checked(self, code):
         if code == 10:
             self.status.setText("An update is available (what changed is in the log below)")
             if QMessageBox.question(self, "KytyPS5", "A newer KytyPS5 is available (what changed is in the log). "
                                     "Update now?\n\nThe current version is kept for a rollback "
-                                    "(./des-update.py --rollback).") == QMessageBox.StandardButton.Yes:
-                env = QProcessEnvironment.systemEnvironment()
-                env.insert("PYTHONUNBUFFERED", "1")
-                self.run_process(sys.executable, [str(HERE / "des-update.py"), "--yes"], env, UPDATE_LOG)
+                                    "(des-update.py --rollback).") == QMessageBox.StandardButton.Yes:
+                env, args = self.updater("--yes")
+                self.run_process(sys.executable, args, env, UPDATE_LOG)
             return True
         return False
 
     def run_process(self, program, args, env, log_file, on_finished=None):
         self.on_finished = on_finished
-        log_file.parent.mkdir(exist_ok=True)
+        log_file.parent.mkdir(parents=True, exist_ok=True)
         self.log_handle = open(log_file, "w", encoding="utf-8", errors="replace")
         cmdline = " ".join(shlex.quote(a) for a in [program] + args)
         self.log.clear()
@@ -463,7 +531,7 @@ class Launcher(QWidget):
 
         self.proc = QProcess(self)
         self.proc.setProcessEnvironment(env)
-        self.proc.setWorkingDirectory(str(HERE))
+        self.proc.setWorkingDirectory(str(KYTY_DIR))
         self.proc.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         self.proc.readyReadStandardOutput.connect(self.read_output)
         self.proc.finished.connect(self.finished)
@@ -473,7 +541,7 @@ class Launcher(QWidget):
         self.precompile_btn.setEnabled(False)
         self.update_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
-        self.status.setText(f"Running… (log: {log_file.relative_to(HERE)})")
+        self.status.setText(f"Running… (log: {log_file})")
 
     def append(self, text):
         if self.log_handle:
@@ -501,14 +569,35 @@ class Launcher(QWidget):
         if self.log_handle:
             self.log_handle.close()
             self.log_handle = None
-        self.launch_btn.setEnabled(True)
-        self.precompile_btn.setEnabled(True)
-        self.update_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
+        self.refresh_install()
         callback, self.on_finished = getattr(self, "on_finished", None), None
         if callback and callback(code):
+            self.refresh_install()
             return
         self.status.setText(f"Exited with code {code}" + ("" if code == 0 else " — see the log below"))
+
+    def offer_menu_entry(self):
+        """Run from an AppImage: once, the offer of an application menu entry pointing at it."""
+        appimage = os.environ.get("APPIMAGE")
+        apps = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "applications"
+        entry = apps / "des-launcher.desktop"
+        if not appimage or self.settings.get("menu_asked") or entry.exists():
+            return
+        self.settings["menu_asked"] = True
+        self.save_settings()
+        if QMessageBox.question(self, APP_NAME, f"Add {APP_NAME} to your application menu?\n\n(It starts this "
+                                f"AppImage: {appimage})") != QMessageBox.StandardButton.Yes:
+            return
+        icon = KYTY_DIR / "des-launcher.png"
+        if (HERE / "des-launcher.png").exists():
+            shutil.copy2(HERE / "des-launcher.png", icon)
+        apps.mkdir(parents=True, exist_ok=True)
+        entry.write_text(f"[Desktop Entry]\nType=Application\nName={APP_NAME}\n"
+                         f"Comment=Unofficial Linux launcher for the KytyPS5 emulator\nExec=\"{appimage}\"\n"
+                         f"Icon={icon if icon.exists() else 'applications-games'}\nTerminal=false\n"
+                         f"Categories=Game;Emulator;\n")
+        self.status.setText(f"Added {APP_NAME} to the application menu.")
 
     def closeEvent(self, event):
         self.stop()
@@ -516,9 +605,9 @@ class Launcher(QWidget):
 
 
 if __name__ == "__main__":
-    os.chdir(HERE)
     app = QApplication(sys.argv)
     app.setDesktopFileName("des-launcher")
     w = Launcher()
     w.show()
+    w.offer_menu_entry()
     sys.exit(app.exec())

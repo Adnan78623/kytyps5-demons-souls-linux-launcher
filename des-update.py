@@ -5,6 +5,7 @@
   ./des-update.py --check      only check (exit code 10 when an update is there)
   ./des-update.py --yes        install or update without asking (install.sh, the launcher's button)
   ./des-update.py --rollback   put the previous version back (from _Old/)
+  --dir <folder>               KytyPS5's folder (default: this script's; the launcher passes its KYTY_DIR)
 
 What it replaces: the release package's files (the emulator, the precompile tool and script, its hints, README,
 licenses). run_ds.sh is upstream's with one line changed (patch_run_ds) so that the launcher can set the window size
@@ -24,7 +25,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent  # KytyPS5's folder (--dir)
 REPO = "chenxiao07/KytyPS5"
 OLD = HERE / "_Old"
 EXECUTABLE = {"kyty_emulator", "kyty_shader_precompile"}
@@ -263,7 +264,13 @@ def main():
     mode.add_argument("--check", action="store_true")
     mode.add_argument("--yes", action="store_true")
     mode.add_argument("--rollback", action="store_true")
+    ap.add_argument("--dir", help="KytyPS5's folder (default: this script's)")
     opt = ap.parse_args()
+    if opt.dir:
+        global HERE, OLD
+        HERE = Path(opt.dir).expanduser().resolve()
+        OLD = HERE / "_Old"
+        HERE.mkdir(parents=True, exist_ok=True)
 
     if not opt.check:
         why = busy()

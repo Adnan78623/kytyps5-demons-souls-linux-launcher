@@ -10,9 +10,23 @@ the emulator belong in [their issues](https://github.com/chenxiao07/KytyPS5/issu
 This project is not affiliated with Sony, Bluepoint Games, FromSoftware or the KytyPS5 developers. It contains no
 game files: you need your own copy of Demon's Souls (PPSA01340/01341/01342), version 01.007.000 or 01.005.000.
 
+## Install
+
+1. Download **`DemonsSouls-KytyPS5-Launcher-x86_64.AppImage`** from the
+   [latest release](../../releases/latest).
+2. Make it executable: right-click → Properties → *Is executable*, or `chmod +x DemonsSouls-KytyPS5-Launcher-x86_64.AppImage`.
+3. Double-click it. On first start it offers to add itself to your application menu, then press **⬇ Install KytyPS5**:
+   it downloads the emulator (about 100 MB) from chenxiao07's GitHub into `~/Games/KytyPS5-DeS`.
+
+Then choose your Demon's Souls folder, press **⚙ Precompile shaders** once, and **▶ Launch**.
+
+The AppImage brings its own Python and Qt: nothing else to install. If it does not start, your system may lack FUSE 2
+(`sudo apt install libfuse2` on Ubuntu 22.04+; on most other distributions it is already there), or run it with
+`--appimage-extract-and-run`.
+
 ## What it does
 
-- **One-step install** of the latest KytyPS5 Linux release, checked against GitHub's checksum, plus a menu entry.
+- **One-click install** of the latest KytyPS5 Linux release, checked against GitHub's checksum.
 - **Game check:** tells you whether the folder you chose is Demon's Souls, and a version KytyPS5 runs.
 - **Display:** window size, render resolution (the 3D world, 720p to 2160p, in performance mode), frame rate
   (30/60/120 Hz), present mode, fullscreen, HDR.
@@ -27,11 +41,12 @@ game files: you need your own copy of Demon's Souls (PPSA01340/01341/01342), ver
 ## Requirements
 
 - Linux x86-64 with a CPU that has AVX2, a Vulkan 1.3 GPU with current drivers (Mesa for AMD/Intel), glibc 2.35+
-- Python 3 and PyQt6: `sudo pacman -S python-pyqt6` (Arch), `sudo apt install python3-pyqt6` (Debian/Ubuntu),
-  `sudo dnf install python3-pyqt6` (Fedora)
 - Optional: `vulkan-tools` (GPU list), `mangohud`, `gamescope`
 
-## Install
+### Without the AppImage
+
+With Python 3 and PyQt6 installed (`sudo pacman -S python-pyqt6`, `sudo apt install python3-pyqt6`,
+`sudo dnf install python3-pyqt6`):
 
 ```
 git clone https://github.com/<you>/des-linux-launcher
@@ -40,9 +55,10 @@ cd des-linux-launcher
 ```
 
 This puts KytyPS5 and the launcher in `~/Games/KytyPS5-DeS` (or `./install.sh <folder>`; an existing KytyPS5 Linux
-folder gets the launcher added). Then open **Demon's Souls (KytyPS5)** from the application menu, choose the game
-folder, and press **Precompile shaders** once (minutes to an hour; it can be stopped and resumes). Run it again
-after a GPU driver update.
+folder gets the launcher added) and adds **Demon's Souls (KytyPS5)** to the application menu.
+
+The precompile takes minutes to an hour the first time, can be stopped, and resumes. Run it again after a GPU driver
+update. Your settings, saves, logs and the shader cache are in `~/Games/KytyPS5-DeS` (`DES_HOME` changes it).
 
 ## Tips
 
@@ -60,7 +76,8 @@ after a GPU driver update.
 |---|---|
 | `des-launcher.py` | the launcher (PyQt6) |
 | `des-update.py` | installs and updates KytyPS5 from chenxiao07's releases; `--rollback` goes back one version |
-| `install.sh` | installs both and adds the menu entry |
+| `install.sh` | installs both without the AppImage and adds the menu entry |
+| `packaging/` | the AppImage build (`build-appimage.sh`), run by `.github/workflows/appimage.yml` for each `v*` tag |
 
 The launcher sets the emulator's own switches (`KYTY_RENDER_HEIGHT`, `KYTY_UPSCALER`, `KYTY_FRAMEGEN`, …) and starts
 upstream's `run_ds.sh`, with one line of it changed so that the window size and language can be set.

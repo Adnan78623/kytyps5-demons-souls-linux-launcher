@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Demon's Souls (KytyPS5)
+Comment=Unofficial Linux launcher for the KytyPS5 emulator
+Exec=des-launcher
+Icon=des-launcher
+Terminal=false
+Categories=Game;Emulator;
