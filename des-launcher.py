@@ -50,7 +50,7 @@ UPSCALERS = {"Off": None, "AMD FSR 1 (gamescope)": "fsr", "NVIDIA NIS (gamescope
              "Integer scaling (gamescope)": "integer"}
 
 DEFAULTS = {
-    "game": "", "resolution": "1920x1080", "render_height": 1440, "fullscreen": False, "hdr": False,
+    "game": "", "resolution": "", "render_height": 1440, "fullscreen": False, "hdr": False,
     "present_mode": "Mailbox", "fps": 60, "gpu": "auto", "language": 1, "mangohud": True,
     "upscaler": "Off", "output_resolution": "2560x1440", "sharpness": 2,
     "fsr_upscaler": False, "fsr_sharpness": 0.6, "frame_gen": False, "low_latency": False,
@@ -95,6 +95,12 @@ class Launcher(QWidget):
             self.settings.update(json.loads(SETTINGS_FILE.read_text()))
         except (OSError, ValueError):
             pass
+
+        if not self.settings["resolution"]:
+            # (First start: the window as large as the screen. A window at most 1080 lines high makes the emulator use
+            # the game's own 1080p output, softer on a larger screen.)
+            screen = QApplication.primaryScreen().size()
+            self.settings["resolution"] = f"{screen.width()}x{screen.height()}"
 
         root = QVBoxLayout(self)
 
